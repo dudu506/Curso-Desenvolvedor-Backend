@@ -51,3 +51,37 @@ a = 45
 b = 30
 Diferença= (a!=b)
 print('Resultado 9:', Diferença)
+
+# Verifique se 5>2 e 8>3
+a = 5 
+b = 2
+c = 8
+d = 3
+AND= (a>b and c>d)
+print('Resultado 10:', AND)
+
+# Verifique se 10 < 3 ou 4 == 4
+a = 10
+b = 3
+c = 4
+d = 4
+OR= (a<b or c==d)
+print('Resultado 11:', OR)
+
+# Inverta o resultado lógico de (7>2) usando not
+a = 7
+b = 2
+NOT= not(a>b)
+print('Resultado 12:',NOT)
+
+# Crie uma variavel x com valor 10 Depois faça:
+# x += 5
+x = 10
+Pergunta1= (x+5)
+print('Resultado 13:',Pergunta1)
+
+Pergunta2= (Pergunta1 * 2)
+print('Resultado 14:', Pergunta2)
+
+Pergunta3= (Pergunta2 - 4)
+print('Resultado 15:', Pergunta3)
