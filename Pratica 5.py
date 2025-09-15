@@ -7,18 +7,18 @@ while Contador <= 10:
     Contador +=1
 
 #2
-for i in range(2,20,2):
- print("número 1:",i)
+for i in range(2,21,2):
+ print("número:",i)
 
  
  #3
-numero1=int(input("número 1="))
+numero1= int(input("número 1="))
 numero2= int(input("número 2="))
 numero3= int(input("número 3="))
 numero4= int(input("número 4="))
 numero5= int(input("número 5="))
 Soma=(numero1 + numero2 + numero3 + numero4 + numero5)
-print(Soma)
+print("Soma:",Soma)
 
  #4
 for i in range(1,11):
@@ -33,3 +33,12 @@ while True:
      break
     soma += número
 print("A soma dos números é:",soma )
+
+try:
+   x = 5 / 1
+except ZeroDivisionError:
+   print("Divisão por zero não permitida")
+else:
+   print("Divisão Realizada com sucesso")
+finally:
+   print("Este bloco sempre será eecutado")
