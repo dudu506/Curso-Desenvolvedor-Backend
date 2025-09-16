@@ -62,12 +62,18 @@ print(soma)
 
 """#
  #Exercicio
-list_compras=[]
 
-Sair="sair"
-lista_produtos= input("lista de produtos:")
+lista_compras=[]
+
 while True:
- Produtos = (input("Digite o nome dos produtos: ("sair para parar"):",))
- if lista_produtos == (Sair):
-  break
- print(lista_produtos)
+    lista_compras1 = input("Digite a lista de compras: ")
+    if lista_compras1 == "sair":
+     break
+   
+    else:
+     lista_compras.append(lista_compras1)
+   
+for lista in  lista_compras:
+     lista_compras.sort()
+     print(lista)
+print("quantidade de produtos:", len(lista_compras))
