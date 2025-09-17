@@ -75,7 +75,55 @@ print(variavel)
 conj= set(variavel)
 print(conj)
 
-"""#
+
 Palavra = input("digite uma palavra: ")
-print(len(set(Palavra)))
-print(len(Palavra))
+if len(Palavra) == len(set(Palavra)):
+ print("todos os caracteres unicos")
+
+else:
+ print("Palavras Repetidas")
+
+
+#dicionários - (dict)
+
+meu_dicionario = {
+ "nome": "ana",
+ "idade": 25,
+  "cidade": "São Paulo"
+  }
+print(meu_dicionario)
+
+# Evitar erro ao acessar chave inexistente
+print(dict.get("altura"))     #none
+print(dict.get("altura",0))
+
+#Adicionar ou atualizar valores
+
+dict["idade"] = 26
+dict["Profisão"]= "engenharia"
+
+"""#
+
+Pessoa = {
+ "nome": "Eduardo",
+ "idade": 16,
+  "cidade": "Mogi Guaçu"
+  }
+print(Pessoa)
+
+Pessoa1= (input("Dê um nome: ")),
+Pessoa2= (input("Dê uma Idade: ")), 
+Pessoa3 =(input("Dê uma Cidade:"))
+Pessoa = {
+ "nome": Pessoa1,
+ "idade": Pessoa2,
+  "cidade": Pessoa3
+  }
+print(Pessoa)
+
+mercado = {
+    "banana":3.50,
+     "maça":2.80,
+     "uva":4.00
+     }
+print(sum(mercado.values()))
