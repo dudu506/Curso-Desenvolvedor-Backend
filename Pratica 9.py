@@ -25,17 +25,17 @@ class conta_Bancaria:
 
     def depositar(self, valor):
      self.saldo += valor
-    print(f"\nVocê depositou R${valor:.2f}.")
+    print(f"\nVocê depositou R${"valor:.2f"}.")
     def sacar_dinheiro(self, valor):
        if valor <= self.saldo:
         print(f"Você acabou de sacar R${valor:.2f}.")
        else:
-         print("saldo insuficiente para realizar o saque")
-         def mostrar_saldo(self):
+        print("saldo insuficiente para realizar o saque")
+def mostrar_saldo(self):
            print(f"saldo atual de {self.titular}: R${self.saldo:2f}")
 
-p1 = conta_Bancaria("marco")
+conta = conta_Bancaria("marco")
 conta.depositar(500)
 conta.sacar(400)
 conta.sacar(200)
-conta.mostrar
+conta.mostrar()
