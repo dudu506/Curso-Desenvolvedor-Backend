@@ -1,5 +1,5 @@
 #CLASSES
-"""#
+
 class pessoa:
     def __init__(self,nome,idade):
      self.nome = nome
@@ -16,26 +16,47 @@ p1.fazer_aniversario()
 p2 = pessoa("junio", 16)
 p2.apresentar()
 p2.fazer_aniversario()
-"""#
+
 #classe de conta bancaria
-class conta_Bancaria:
-    def __init__(self,titular,saldo):
-     self.titular = titular
-     self.saldo = 0
 
-    def depositar(self, valor):
-     self.saldo += valor
-    print(f"\nVocê depositou R${"valor:.2f"}.")
-    def sacar_dinheiro(self, valor):
-       if valor <= self.saldo:
-        print(f"Você acabou de sacar R${valor:.2f}.")
-       else:
-        print("saldo insuficiente para realizar o saque")
-def mostrar_saldo(self):
-           print(f"saldo atual de {self.titular}: R${self.saldo:2f}")
+class ContaBancaria:
+ def __init__(self,titular):
+        self.titular = titular
+        self.saldo = 0
 
-conta = conta_Bancaria("marco")
-conta.depositar(500)
-conta.sacar(400)
-conta.sacar(200)
-conta.mostrar()
+ def depositar_valor(self,valor):
+        self.saldo += valor
+        print(f"\nVoçê acabou de depositar {valor:.2f} realizado com sucesso.")
+
+ def sacar_valor(self,valor):
+        if valor <= self.saldo:
+            self.saldo -= valor
+            print("\nVoçê acabou de sacar  {valor:.2f} da sua conta!")
+        else:
+            print("\nVoçê não tem saldo suficiente")
+ def mostrar_saldo(self):
+        print(f"Saldo atual de {self.titular}: R${self.saldo:.2f}")
+
+conta = ContaBancaria("Eduardo")
+conta.depositar_valor(500)
+conta.sacar_valor(200)
+conta.sacar_valor(400)
+conta.mostrar_saldo()
+
+#exercicio
+vendedor = "josé"
+vendas = 800
+meta = 500
+
+class Vendedor:
+    def __init__(self,nome,vendas,meta):
+        self.nome = nome
+        self.vendas = vendas
+        self.meta = meta
+    def bateu_meta(self):
+      return self.vendas >= self.meta
+vendedor1 = Vendedor(vendedor, vendas , meta)
+if vendedor1.bateu_meta():
+ print(f"{vendedor1.nome} bateu a meta")
+else:
+   print(f"{vendedor1.nome} não bateu a meta")
