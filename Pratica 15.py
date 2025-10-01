@@ -1,4 +1,6 @@
-"""
+#Herança
+
+#1
 class ContaBancaria:
     def __init__(self,titular,saldo):
         self.__titular = titular
@@ -14,7 +16,7 @@ print(conta.get_saldo())
 conta.depositar(500)
 print(conta.get_saldo())
 
-
+#2
 class animal:
     def __init__(self, nome):
         self.nome = nome
@@ -35,7 +37,8 @@ cat = gato("Mimi")
 dog.emitir_som()
 cat.emitir_som()
 
-class Funcionario:
+#3
+# class Funcionario:
     def __init__(self, nome, salario):
      self.nome = nome
      self._salario = salario
@@ -71,7 +74,7 @@ g1 = Gerente("Eduardo", 5000, "vendas")
 g1.mostrar_dados()
 g1.mostrar_departamento()
 
-
+#4
 class Produto:
     def __init__(self,nome,preço):
         self.__nome = nome
@@ -96,7 +99,7 @@ print("Sem desconto:"  ,produtob.get_preço())
 produtob.descontos()
 print("Com desconto:"  ,produtob.get_preço())
 
-"""
+#5
 class Funcionario:
     def trabalhar(self):
         print("O funcionario esta trabalhando normalmento.")
@@ -109,3 +112,124 @@ e1 = Estagiario()
 
 f1.trabalhar()
 e1.trabalhar()
+
+#6
+class ContaCorrente:
+    def __init__(self,titular):
+     self._titular = titular
+     self._saldo = 100
+
+    def depositar(self, valor):
+     self._saldo += valor
+     print(f"Você depositou R${valor:.2f}.")
+
+    def sacar_dinheiro(self, valor):
+       if valor <= self._saldo:
+           self._saldo -= valor
+           print(f"Você acabou de sacar R${valor:.2f}.")
+       else:
+        print("Saldo insuficiente para realizar o saque")
+        
+    def mostrar_saldo(self):
+        print(f"Saldo atual de {self._titular}: R${self._saldo:.2f}")
+
+conta = ContaCorrente("Eduardo")
+conta.depositar(500)
+conta.sacar_dinheiro(400)
+conta.sacar_dinheiro(200)
+conta.mostrar_saldo()
+
+#7
+class Aluno:
+    def __init__(self, nome, nota):
+        self._nome = nome
+        self._nota = nota
+
+    def mostrar_nota(self):
+        print(f"{self._nome}, a nota que você tirou foi {self._nota}")
+
+    def apenas(self):
+        if self._nota > 0 and self._nota <= 10:
+            print("sua nota foi aceita")
+        else:
+            print("sua nota é inexistente")
+
+al1 = Aluno("eduardo",10)
+al2 = Aluno("Raissa",1)
+al3 = Aluno("junio",-1)
+
+al1.mostrar_nota()
+al1.apenas()
+al2.mostrar_nota()
+al2.apenas()
+al3.mostrar_nota()
+al3.apenas()
+
+#8
+class pessoa:
+    def __init__(self,nome, idade):
+        self._nome = nome
+        self._idade = idade
+
+class teacher(pessoa):
+    def materia(self):
+
+        super(pai)
+class pai:
+    def __init__(self):
+
+#9
+class veiculo:
+    def mover(self):
+       print("O veiculo esta se movendo...")
+
+class carro(veiculo):
+    def mover(self):
+        print(" O carro esta dirigindo pela estrada")
+
+class bicicleta(veiculo):
+    def mover(self):
+        print("A bicicleta esta pedalando pela ciclovia.")
+
+v1 = carro()
+v2 = bicicleta()
+
+v1.mover()
+v2.mover()
+
+
+#10
+class usuario:
+    def __init__(self, senha):
+        self.__senha = senha
+
+    def login(self, senha):
+        if senha == self.__senha:
+            print("O login realizado com sucesso!")
+        else:
+            print("senha incorreta!")
+    def alterar_senha(self, antiga, nova):
+        if antiga == self.__senha:
+            self.__senha = nova
+            print("senha alterda com sucesso")
+        else:
+            print("senha antiga incorreta")
+u1 = usuario("1234")
+u1.login("1234")
+u1.alterar_senha("1234", "abcd")
+u1.login("abcd")
+
+#11
+class animal:
+    def respirar(self):
+        print("O animal esta respirando.")
+class mamifero(animal):
+    def amamentar(self):
+        print("O mamifera esta amamentando.")
+class cachorro(mamifero):
+    def latir(self):
+        print("O cachorro esta latindo: au au !")        
+dog = cachorro()
+dog.respirar()
+dog.amamentar()
+dog.latir()
