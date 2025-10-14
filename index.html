@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-   <meta charset="ult-8" />
-   <title>Minha Tarefas</title>
+    <meta charset="utf-8"/>
+    <title>Minha Tarefas</title>
 </head>
 <body>
     <h1>Lista de Tarefas</h1>
     <ul>
         {% for tarefa in tarefas %}
-        <li>
-          {{ tarefa.titulo }} - 
-          {% if tarefa.concluida %} ✅ Concluida {% else %} ❌ Pendente {% endif %}
-        </li>
-    </li>
+            <li>
+                {{ tarefa.titulo }} - 
+                {% if tarefa.concluida %} ✅ Concluída {% else %} ❌ Pendente {% endif %}
+            </li>
+        {% endfor %}
     </ul>
 </body>
 </html>
