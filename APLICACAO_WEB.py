@@ -1,5 +1,8 @@
-# APLICACAO_WEB.py — rotas de upload/lista/download/excluir
-# Adicione os imports no topo
+import csv
+import io
+from datetime import datetime
+from flask import jsonify, make_response, send_file
+from xml.etree.ElementTree import Element, SubElement, tostring, ElementTree
 import os
 import uuid
 from pathlib import Path
@@ -325,6 +328,252 @@ def criar_venda():
         db.session.rollback()
         flash(f"Erro ao registrar venda: {e}", "error")
         return redirect(url_for("form_venda"))
+    def parse_date(dstr: str | None):
+      if not dstr:
+        return None
+    # aceita formatos DD/MM/AAAA ou AAAA-MM-DD (value padrão <input type="date">)
+    for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(dstr, fmt)
+        except ValueError:
+            continue
+    return None
+
+@app.route("/relatorios", methods=["GET"])
+def relatorios_form():
+    return render_template("relatorios.html")
+
+@app.route("/relatorios/pedidos", methods=["POST"])
+def relatorio_pedidos_html():
+    inicio = parse_date(request.form.get("inicio"))
+    fim = parse_date(request.form.get("fim"))
+    q = Pedido.query
+    if inicio:
+        q = q.filter(Pedido.id >= 0)  # no-op para manter q como query
+    if inicio and fim:
+        # Se quiser filtrar por data real, adicione campo datetime em Pedido e ajuste o filtro.
+        pass
+
+    # Como não temos data do pedido, listaremos todos e mostraremos total geral
+    pedidos = q.order_by(Pedido.id.desc()).all()
+    total_geral = sum([float(p.valor_total or 0) for p in pedidos])
+    return render_template("relatorios_pedidos.html", pedidos=pedidos, total_geral=total_geral, inicio=inicio, fim=fim)
+
+@app.route("/relatorios/pedidos.csv", methods=["GET"])
+def relatorio_pedidos_csv():
+    # CSV leve: id, cliente, status, total
+    pedidos = Pedido.query.order_by(Pedido.id.desc()).all()
+    buf = io.StringIO(newline="")
+    w = csv.writer(buf, delimiter=";")
+    w.writerow(["id", "cliente", "status", "valor_total"])
+    for p in pedidos:
+        w.writerow([p.id, p.cliente.nome if p.cliente else "", p.status, f"{float(p.valor_total or 0):.2f}"])
+    resp = make_response(buf.getvalue())
+    resp.headers["Content-Type"] = "text/csv; charset=utf-8"
+    resp.headers["Content-Disposition"] = 'attachment; filename="pedidos.csv"'
+    return resp
+
+@app.route("/relatorios/produtos.csv", methods=["GET"])
+def relatorio_produtos_csv():
+    produtos = Produto.query.order_by(Produto.id.desc()).all()
+    buf = io.StringIO(newline="")
+    w = csv.writer(buf, delimiter=";")
+    w.writerow(["id", "nome", "categoria", "preco", "estoque"])
+    for p in produtos:
+        w.writerow([p.id, p.nome, p.categoria.nome if p.categoria else "", f"{float(p.preco):.2f}", p.estoque])
+    resp = make_response(buf.getvalue())
+    resp.headers["Content-Type"] = "text/csv; charset=utf-8"
+    resp.headers["Content-Disposition"] = 'attachment; filename="produtos.csv"'
+    return resp
+
+@app.route("/relatorios/clientes.csv", methods=["GET"])
+def relatorio_clientes_csv():
+    clientes = Cliente.query.order_by(Cliente.id.desc()).all()
+    buf = io.StringIO(newline="")
+    w = csv.writer(buf, delimiter=";")
+    w.writerow(["id", "nome", "email", "ativo"])
+    for c in clientes:
+        w.writerow([c.id, c.nome, c.email or "", "1" if c.ativo else "0"])
+    resp = make_response(buf.getvalue())
+    resp.headers["Content-Type"] = "text/csv; charset=utf-8"
+    resp.headers["Content-Disposition"] = 'attachment; filename="clientes.csv"'
+    return resp
+
+
+# ===========================
+# 11.5 — XML (exportar/importar)
+# ===========================
+
+def produtos_to_xml(produtos):
+    root = Element("produtos")
+    for p in produtos:
+        e = SubElement(root, "produto", id=str(p.id))
+        SubElement(e, "nome").text = p.nome
+        SubElement(e, "preco").text = f"{float(p.preco):.2f}"
+        SubElement(e, "estoque").text = str(p.estoque)
+        SubElement(e, "categoria").text = p.categoria.nome if p.categoria else ""
+    return tostring(root, encoding="utf-8")
+
+@app.route("/xml/produtos", methods=["GET"])
+def exportar_produtos_xml():
+    produtos = Produto.query.order_by(Produto.id.asc()).all()
+    xml_bytes = produtos_to_xml(produtos)
+    resp = make_response(xml_bytes)
+    resp.headers["Content-Type"] = "application/xml; charset=utf-8"
+    resp.headers["Content-Disposition"] = 'attachment; filename="produtos.xml"'
+    return resp
+
+@app.route("/xml/importar", methods=["POST"])
+def importar_produtos_xml():
+    """
+    Espera um arquivo XML no input name="arquivo".
+    Formato esperado:
+    <produtos>
+      <produto>
+        <nome>Notebook</nome>
+        <preco>3500.00</preco>
+        <estoque>10</estoque>
+        <categoria>Informática</categoria>
+      </produto>
+      ...
+    </produtos>
+    """
+    f = request.files.get("arquivo")
+    if not f or not f.filename.lower().endswith(".xml"):
+        flash("Envie um arquivo XML válido.", "error")
+        return redirect(url_for("relatorios_form"))
+
+    try:
+        tree = ElementTree(file=f)
+        root = tree.getroot()
+        importados = 0
+        for e in root.findall("produto"):
+            nome = (e.findtext("nome") or "").strip()
+            preco = float((e.findtext("preco") or "0").replace(",", "."))
+            estoque = int(e.findtext("estoque") or 0)
+            categoria_nome = (e.findtext("categoria") or "").strip()
+
+            categoria_id = None
+            if categoria_nome:
+                cat = Categoria.query.filter_by(nome=categoria_nome).first()
+                if not cat:
+                    cat = Categoria(nome=categoria_nome)
+                    db.session.add(cat)
+                    db.session.flush()
+                categoria_id = cat.id
+
+            p = Produto(nome=nome, preco=preco, estoque=estoque, categoria_id=categoria_id)
+            db.session.add(p)
+            importados += 1
+
+        db.session.commit()
+        flash(f"XML importado com sucesso! Produtos inseridos: {importados}", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Erro ao importar XML: {e}", "error")
+
+    return redirect(url_for("relatorios_form"))
+
+
+# ===========================
+# 11.6 — JSON (exportar/importar API simples)
+# ===========================
+
+@app.route("/api/produtos", methods=["GET"])
+def api_produtos():
+    produtos = Produto.query.order_by(Produto.id.asc()).all()
+    data = [
+        {
+            "id": p.id,
+            "nome": p.nome,
+            "preco": float(p.preco),
+            "estoque": p.estoque,
+            "categoria": p.categoria.nome if p.categoria else None,
+        }
+        for p in produtos
+    ]
+    return jsonify(data)
+
+@app.route("/api/clientes", methods=["GET"])
+def api_clientes():
+    clientes = Cliente.query.order_by(Cliente.id.asc()).all()
+    data = [{"id": c.id, "nome": c.nome, "email": c.email, "ativo": c.ativo} for c in clientes]
+    return jsonify(data)
+
+@app.route("/api/pedidos", methods=["GET"])
+def api_pedidos():
+    pedidos = Pedido.query.order_by(Pedido.id.asc()).all()
+    data = []
+    for p in pedidos:
+        itens = [
+            {
+                "produto": it.produto.nome if it.produto else None,
+                "quantidade": it.quantidade,
+                "preco_unitario": float(it.preco_unitario),
+                "subtotal": float(it.quantidade) * float(it.preco_unitario),
+            }
+            for it in p.itens
+        ]
+        data.append({
+            "id": p.id,
+            "cliente": p.cliente.nome if p.cliente else None,
+            "status": p.status,
+            "valor_total": float(p.valor_total or 0),
+            "itens": itens,
+        })
+    return jsonify(data)
+
+@app.route("/json/importar", methods=["POST"])
+def importar_produtos_json():
+    """
+    Espera JSON no body ou arquivo com input name="arquivo".
+    Formato esperado: lista de produtos
+    [
+      {"nome": "Teclado", "preco": 199.9, "estoque": 20, "categoria": "Informática"},
+      ...
+    ]
+    """
+    payload = None
+    if request.is_json:
+        payload = request.get_json(silent=True)
+    if not payload:
+        f = request.files.get("arquivo")
+        if f and f.filename.lower().endswith(".json"):
+            try:
+                payload = json.load(f)
+            except Exception:
+                payload = None
+    if not payload or not isinstance(payload, list):
+        flash("Envie um JSON válido (lista de produtos).", "error")
+        return redirect(url_for("relatorios_form"))
+
+    try:
+        importados = 0
+        for obj in payload:
+            nome = obj.get("nome")
+            preco = float(obj.get("preco", 0))
+            estoque = int(obj.get("estoque", 0))
+            categoria_nome = (obj.get("categoria") or "").strip()
+            categoria_id = None
+            if categoria_nome:
+                cat = Categoria.query.filter_by(nome=categoria_nome).first()
+                if not cat:
+                    cat = Categoria(nome=categoria_nome)
+                    db.session.add(cat)
+                    db.session.flush()
+                categoria_id = cat.id
+
+            p = Produto(nome=nome, preco=preco, estoque=estoque, categoria_id=categoria_id)
+            db.session.add(p)
+            importados += 1
+
+        db.session.commit()
+        flash(f"JSON importado! Produtos inseridos: {importados}", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Erro ao importar JSON: {e}", "error")
+
+    return redirect(url_for("relatorios_form"))
     
 # ===========================
 # EXCLUSÕES (DELETE) COM REGRAS
