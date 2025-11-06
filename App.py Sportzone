@@ -1,0 +1,357 @@
+from flask import Flask, render_template, redirect, url_for, request, flash, session
+
+from flask_sqlalchemy import SQLAlchemy
+
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin
+
+from werkzeug.security import generate_password_hash, check_password_hash
+
+from config import Config
+
+import os
+
+app = Flask(name)
+
+app.config.from_object(Config)
+
+db = SQLAlchemy(app)
+
+login_manager = LoginManager(app)
+
+login_manager.login_view = 'login'
+
+-----------------------
+
+Models
+
+-----------------------
+
+class User(UserMixin, db.Model):
+
+id = db.Column(db.Integer, primary_key=True)
+
+username = db.Column(db.String(80), unique=True, nullable=False)
+
+email = db.Column(db.String(150), unique=True, nullable=False)
+
+password_hash = db.Column(db.String(200), nullable=False)
+
+
+
+def set_password(self, password):
+
+    self.password_hash = generate_password_hash(password)
+
+
+
+def check_password(self, password):
+
+    return check_password_hash(self.password_hash, password)
+
+class Product(db.Model):
+
+id = db.Column(db.Integer, primary_key=True)
+
+name = db.Column(db.String(140), nullable=False)
+
+description = db.Column(db.Text, nullable=True)
+
+price = db.Column(db.Float, nullable=False)
+
+stock = db.Column(db.Integer, default=0)
+
+image = db.Column(db.String(200), nullable=True)  # path in static/img
+
+highlighted = db.Column(db.Boolean, default=False)  # produtos em destaque
+
+-----------------------
+
+Login loader
+
+-----------------------
+
+@login_manager.user_loader
+
+def load_user(user_id):
+
+return User.query.get(int(user_id))
+
+-----------------------
+
+Helpers: cart stored in session
+
+-----------------------
+
+def get_cart():
+
+return session.get('cart', {})
+
+def save_cart(cart):
+
+session['cart'] = cart
+
+session.modified = True
+
+-----------------------
+
+Routes
+
+-----------------------
+
+@app.route('/')
+
+def index():
+
+destaque = Product.query.filter_by(highlighted=True).all()
+
+return render_template('index.html', produtos=destaque)
+
+@app.route('/produtos')
+
+@login_required
+
+def produtos():
+
+produtos = Product.query.all()
+
+return render_template('produtos.html', produtos=produtos)
+
+@app.route('/produto/int:product_id')
+
+@login_required
+
+def produto_detail(product_id):
+
+p = Product.query.get_or_404(product_id)
+
+return render_template('produto_detail.html', produto=p)
+
+@app.route('/editar_produto/int:product_id', methods=['GET', 'POST'])
+
+@login_required  # se quiser restringir a usuários logados
+
+def editar_produto(product_id):
+
+produto = Product.query.get_or_404(product_id)
+
+
+
+if request.method == 'POST':
+
+    produto.name = request.form['name']
+
+    produto.description = request.form['description']
+
+    produto.price = float(request.form['price'])
+
+    produto.stock = int(request.form['stock'])
+
+    produto.category = request.form['category']
+
+    produto.brand = request.form['brand']
+
+    produto.color = request.form['color']
+
+    produto.material = request.form['material']
+
+    produto.weight = request.form['weight']
+
+
+
+    db.session.commit()
+
+    flash('Produto atualizado com sucesso!', 'success')
+
+    return redirect(url_for('produto_detail', product_id=produto.id))
+
+
+
+return render_template('editar_produto.html', produto=produto)
+
+@app.route('/produto/int:product_id/toggle_highlight', methods=['POST'])
+
+@login_required
+
+def toggle_highlight(product_id):
+
+p = Product.query.get_or_404(product_id)
+
+p.highlighted = not p.highlighted
+
+db.session.commit()
+
+if p.highlighted:
+
+    flash(f'{p.name} adicionado aos destaques.', 'success')
+
+else:
+
+    flash(f'{p.name} removido dos destaques.', 'info')
+
+return redirect(request.referrer or url_for('produtos'))
+
+-----------------------
+
+Cart endpoints
+
+-----------------------
+
+@app.route('/cart/add/int:product_id', methods=['POST'])
+
+@login_required
+
+def add_to_cart(product_id):
+
+p = Product.query.get_or_404(product_id)
+
+qty = int(request.form.get('quantity', 1))
+
+cart = get_cart()
+
+item = cart.get(str(product_id), {'qty': 0, 'name': p.name, 'price': p.price})
+
+item['qty'] += qty
+
+cart[str(product_id)] = item
+
+save_cart(cart)
+
+flash(f'Adicionado {qty}x {p.name} ao carrinho.', 'success')
+
+return redirect(request.referrer or url_for('produtos'))
+
+@app.route('/cart')
+
+@login_required
+
+def view_cart():
+
+cart = get_cart()
+
+total = sum(item['qty'] * item['price'] for item in cart.values())
+
+return render_template('carrinho.html', cart=cart, total=total)
+
+@app.route('/cart/remove/int:product_id')
+
+def remove_from_cart(product_id):
+
+cart = get_cart()
+
+cart.pop(str(product_id), None)
+
+save_cart(cart)
+
+flash('Item removido do carrinho.', 'info')
+
+return redirect(url_for('view_cart'))
+
+@app.route('/cart/clear')
+
+def clear_cart():
+
+save_cart({})
+
+flash('Carrinho limpo.', 'info')
+
+return redirect(url_for('view_cart'))
+
+-----------------------
+
+Auth
+
+-----------------------
+
+@app.route('/registro', methods=['GET', 'POST'])
+
+def registro():
+
+if request.method == 'POST':
+
+    username = request.form['username'].strip()
+
+    email = request.form['email'].strip()
+
+    password = request.form['password']
+
+    if User.query.filter((User.username == username) | (User.email == email)).first():
+
+        flash('Usuário ou e-mail já existe.', 'danger')
+
+        return redirect(url_for('registro'))
+
+    user = User(username=username, email=email)
+
+    user.set_password(password)
+
+    db.session.add(user)
+
+    db.session.commit()
+
+    login_user(user)
+
+    flash('Registrado com sucesso!', 'success')
+
+    return redirect(url_for('index'))
+
+return render_template('registro.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+
+def login():
+
+if request.method == 'POST':
+
+    email = request.form['email'].strip()
+
+    password = request.form['password']
+
+    user = User.query.filter_by(email=email).first()
+
+    if user and user.check_password(password):
+
+        login_user(user)
+
+        flash('Login realizado!', 'success')
+
+        return redirect(url_for('index'))
+
+    flash('Credenciais inválidas.', 'danger')
+
+return render_template('login.html')
+
+@app.route('/logout')
+
+@login_required
+
+def logout():
+
+logout_user()
+
+flash('Você saiu da conta.', 'info')
+
+return redirect(url_for('index'))
+
+@app.route('/search')
+
+def search():
+
+query = request.args.get('q')
+
+resultados = []  # por enquanto, vazio
+
+return render_template('search.html', resultados=resultados)
+
+-----------------------
+
+Run
+
+-----------------------
+
+if name == 'main':
+
+# cria pasta database se não existir
+
+os.makedirs(os.path.join(os.path.dirname(__file__), 'database'), exist_ok=True)
+
+app.run(debug=True)
